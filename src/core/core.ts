@@ -1,9 +1,12 @@
 // Import the crypto getRandomValues shim (**BEFORE** the shims)
  import "react-native-get-random-values";
-// Import the the ethers shims (**BEFORE** ethers)
-import '@ethersproject/shims';
+// // Import the the ethers shims (**BEFORE** ethers)
+ import '@ethersproject/shims';
+ import { ethers } from "ethers";
+
 // Import the ethers library
-import { ethers } from "ethers";
+import * as Random from 'expo-random';
+
 import { WalletCreationResponse } from "../interfaces/interface";
 import { HelpersWrapper } from "../helpers/helpers";
 
@@ -13,7 +16,6 @@ export class multichainWallet {
   public async createWallet(
     password: string | ethers.utils.Bytes,
     path: string = "m/44'/60'/0'/0/0",
-    seedByte: number = 16,
     needPrivateKey: boolean = false,
     needPublicKey: boolean = false,
     needKeystore: boolean = true,
@@ -21,7 +23,7 @@ export class multichainWallet {
   ): Promise<WalletCreationResponse> {
     try {
 
-      const privateSeed = ethers.utils.randomBytes(seedByte);
+      const privateSeed =  await Random.getRandomBytesAsync(16);
       const mnemonic = ethers.utils.entropyToMnemonic(privateSeed);
       const node = ethers.utils.HDNode.fromMnemonic(mnemonic, mnemonicPassword);
       const hdnode = node.derivePath(path);
@@ -65,10 +67,7 @@ export class multichainWallet {
     password: string = ""
   ): Promise<string> {
     try { 
-
-        
       const node = ethers.utils.HDNode.fromMnemonic(mnemonic, password);
-
       const hdnode = node.derivePath(path);
       return hdnode.privateKey;
     } catch (error) {
@@ -81,11 +80,11 @@ export class multichainWallet {
     }
   }
 
-  public getAddressFromMnemonic(
+  public async getAddressFromMnemonic(
     mnemonic: string,
     path: string = "m/44'/60'/0'/0/0", // Using the default Ethereum derivation path
     mnemonicPassword: string = ""
-  ): string {
+  ): Promise<string> {
     // Ensure the mnemonic is valid and has the correct number of words
     if (!mnemonic || mnemonic.split(" ").length < 12) {
       throw new Error("Invalid mnemonic phrase");

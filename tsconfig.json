@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
-    "module": "commonjs" /* Specify what module code is generated. */,
-    "declaration": true /* Generate .d.ts files from TypeScript and JavaScript files in your project. */,
-    "outDir": "./dist" /* Specify an output folder for all emitted files. */,
-    "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */,
-    "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
-    "strict": true /* Enable all strict type-checking options. */
+    "target": "esnext",
+    "module": "esnext",
+    "declaration": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "jsx": "react-native", // Add this line if your project includes JSX
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "noEmit": true, // Consider adding this if you're using Metro to bundle your code and only need type-checking from tsc
+    "lib": ["es2016", "dom"] // Include "dom" for types like 'Promise', though it's not strictly accurate for RN environments
   },
-
   "include": ["src/**/*"],
   "exclude": ["node_modules", "**/*.test.ts"]
 }
