@@ -1,5 +1,5 @@
-import { multichainWallet } from "./core/core"
+import { multichainWallet } from "./core/core";
 
-const multichain = new multichainWallet()
+const multichain = new multichainWallet();
 
-export {multichain}
+export { multichain };

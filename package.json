@@ -15,6 +15,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "expo-random": "^13.6.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
@@ -23,10 +24,10 @@
   },
   "dependencies": {
     "@ethersproject/shims": "^5.7.0",
-    "ethers": "^5.7.0",
-    "expo-random": "^13.6.0"
+    "ethers": "^5.7.0"
   },
   "peerDependencies": {
+    "expo-random": "*",
     "react-native": "*",
     "react-native-get-random-values": "*"
   }
