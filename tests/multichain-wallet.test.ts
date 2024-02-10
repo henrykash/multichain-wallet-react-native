@@ -43,7 +43,7 @@ jest.mock('ethers', () => {
 describe('multichainWallet', () => {
   describe('createWallet', () => {
     it('creates a wallet successfully with default options', async () => {
-      const walletResponse = await multichain.createWallet('password');
+      const walletResponse = await multichain.createWalletEVM('password');
       expect(walletResponse).toHaveProperty('mnemonic');
       expect(walletResponse).toHaveProperty('shuffleMnemonic');
       expect(walletResponse).toHaveProperty('address', 'test-address');
