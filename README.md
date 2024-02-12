@@ -6,7 +6,7 @@ and only advocates storing the keystore or the mnemonic with the
 password authentication locally, and does not activate the wallet except for write operations.
 
 ## Installation
-- `npm i multichain-wallet-react-native`
+- `npm i multichain-wallet-react-native@latest`
 - `npm install react-native-get-random-values --save`
 -  `npm install react-native --save`
 
