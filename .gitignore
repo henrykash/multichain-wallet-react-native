@@ -45,3 +45,6 @@ coverage/
 # Misc
 .cache/
 .next/
+
+# Ignore generated files
+/dist/
