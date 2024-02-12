@@ -8,8 +8,7 @@ password authentication locally, and does not activate the wallet except for wri
 ## Installation
 - `npm i multichain-wallet-react-native`
 - `npm install react-native-get-random-values --save`
-- `npm install react-native expo-random --save`
--  `npm install react-native`
+-  `npm install react-native --save`
 
 ## Features
 - Create EVM-compatible wallets (Ethereum, etc.)
