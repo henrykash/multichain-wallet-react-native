@@ -1,27 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ES2016",
-    "module": "CommonJS",
+    "target": "es2016",
+    "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "jsx": "react-native", // Add this line if your project includes JSX
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "noEmit": true, // Consider adding this if you're using Metro to bundle your code and only need type-checking from tsc
-    "lib": ["es2016", "dom"] ,// Include "dom" for types like 'Promise', though it's not strictly accurate for RN environments
-    // Added "baseUrl" and "paths" to potentially simplify module imports (adjust as needed)
-    "baseUrl": "./",
+    "noEmit": false, // Make sure to set this to false to enable file emission
+    "baseUrl": "./", // This sets the base directory for the below paths
     "paths": {
-      "*": ["src/*"]
+      "*": ["src/*"] // This means any import will be looked up in the src directory
     }
   },
   "include": ["src/**/*"],
-  
   "exclude": ["node_modules", "**/*.test.ts", "**/*.spec.ts"]
 }
-

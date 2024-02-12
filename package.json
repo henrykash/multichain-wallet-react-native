@@ -30,7 +30,6 @@
     "ethers": "^5.7.0"
   },
   "peerDependencies": {
-    "expo-random": "*",
     "react-native": "*",
     "react-native-get-random-values": "*"
   }

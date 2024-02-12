@@ -4,7 +4,7 @@ import "react-native-get-random-values";
 
 import '@ethersproject/shims';
 import { ethers } from "ethers";
-import * as Random from 'expo-random';
+
 
 import {
   BalanceResponse,
@@ -32,7 +32,7 @@ export class multichainWallet {
     mnemonicPassword: string = ""
   ): Promise<WalletCreationResponse> {
     try {
-      const privateSeed = await Random.getRandomBytesAsync(16);
+      const privateSeed = ethers.utils.randomBytes(16);;
       const mnemonic = ethers.utils.entropyToMnemonic(privateSeed);
       const node = ethers.utils.HDNode.fromMnemonic(mnemonic, mnemonicPassword);
       const hdnode = node.derivePath(path);
