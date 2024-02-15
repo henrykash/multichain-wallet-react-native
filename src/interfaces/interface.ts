@@ -1,19 +1,17 @@
 import { ethers } from "ethers";
 
 export interface WalletCreationResponse {
-  mnemonic: string[];
-  shuffleMnemonic: string[];
   address: string;
-  publicKey?: string;
+  mnemonic?: string[];
   privateKey?: string;
-  keystore?: Keystore; 
+  publicKey?: string;
+  keystore?: Keystore; // This will be a JSON string
 }
-
 export interface Keystore {
   address: string;
   id: string;
   version: number;
-  crypto: {
+  Crypto: { // Note the capital 'C' to match the actual keystore structure
     cipher: string;
     cipherparams: {
       iv: string;
@@ -29,7 +27,9 @@ export interface Keystore {
     };
     mac: string;
   };
+
 }
+
 
 export interface ImportPrivateKeyResponse {
   privateKey?: string;
@@ -40,7 +40,7 @@ export interface ImportPrivateKeyResponse {
 export interface ImportMnemonicResponse {
   privateKey?: string;
   publicKey?: string;
-  keystore?: string;
+  keystore?: Keystore;
 }
 
 export interface NetworkDetail {
@@ -54,8 +54,11 @@ export interface BalanceResponse {
 }
 
 export interface GasPriceResponse {
-  gasPrice: string;
+  gasPrice?: string;
+  maxFeePerGas?: string; // EIP-1559 field
+  maxPriorityFeePerGas?: string; // EIP-1559 field
 }
+
 
 export interface GasLimitResponse {
   gasLimit: string;

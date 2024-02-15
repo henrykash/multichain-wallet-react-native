@@ -1,12 +1,12 @@
-import { ethers } from "ethers";
+// import { ethers } from "ethers";
 
-class Helpers {
-  constructor() {}
+// class Helpers {
+//   constructor() {}
 
-    shuffleArray =(origin: any) =>{
-    let array = origin.slice();
-    return ethers.utils.shuffled(array);
-}
-}
+//     shuffleArray =(origin: any) =>{
+//     let array = origin.slice();
+//     returnshuffled(array);
+// }
+// }
 
-export const HelpersWrapper = new Helpers();
+// export const HelpersWrapper = new Helpers();

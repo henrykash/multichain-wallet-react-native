@@ -1,1 +1,3 @@
-export { multichainWallet } from "./core/core";
+ export { multichainWallet } from "./core/core";
+
+

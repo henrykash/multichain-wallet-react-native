@@ -1,10 +1,23 @@
 // Import the crypto getRandomValues shim (**BEFORE** the shims)
-import "react-native-get-random-values";
+// import "react-native-get-random-values";
 // // Import the the ethers shims (**BEFORE** ethers)
 
-import '@ethersproject/shims';
-import { ethers } from "ethers";
-
+// import '@ethersproject/shims';
+import {
+  SigningKey,
+  BytesLike,
+  HDNodeWallet,
+  JsonRpcProvider,
+  Wallet,
+  ethers,
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  randomBytes,
+  Mnemonic,
+  Contract,
+} from "ethers";
 
 import {
   BalanceResponse,
@@ -18,70 +31,58 @@ import {
   TransactionResponse,
   WalletCreationResponse,
 } from "../interfaces/interface";
-import { HelpersWrapper } from "../helpers/helpers";
 
 export class multichainWallet {
   constructor() {}
 
   public async createWalletEVM(
-    password: string | ethers.utils.Bytes,
-    path: string = "m/44'/60'/0'/0/0",
-    needPrivateKey: boolean = false,
-    needPublicKey: boolean = false,
-    needKeystore: boolean = true,
-    mnemonicPassword: string = ""
+    password: string,
+    derivationPath: string = "m/44'/60'/0'/0/0"
   ): Promise<WalletCreationResponse> {
-    try {
-      const privateSeed = ethers.utils.randomBytes(16);;
-      const mnemonic = ethers.utils.entropyToMnemonic(privateSeed);
-      const node = ethers.utils.HDNode.fromMnemonic(mnemonic, mnemonicPassword);
-      const hdnode = node.derivePath(path);
-      const mnemonicArr = mnemonic.split(" ");
+    // Generate a new mnemonic
+    const mnemonic = ethers.Wallet.createRandom().mnemonic!.phrase;
 
-      const shuffleMnemonicArr = HelpersWrapper.shuffleArray(mnemonicArr);
+    const mnemonicInstance = Mnemonic.fromPhrase(mnemonic);
+    // Use the mnemonic and derivation path to create a wallet
+    const wallet = HDNodeWallet.fromMnemonic(mnemonicInstance, derivationPath);
 
-      let response: WalletCreationResponse = {
-        mnemonic: mnemonicArr,
-        shuffleMnemonic: shuffleMnemonicArr,
-        address: hdnode.address,
-      };
+    // Extract necessary components
+    const { address, privateKey } = wallet;
 
-      if (needPublicKey) {
-        response.publicKey = hdnode.publicKey;
-      }
+    const mnemonicArray = mnemonic.split(" ");
 
-      if (needPrivateKey) {
-        response.privateKey = hdnode.privateKey;
-      }
+    // Encrypt the private key to get a keystore JSON object
+    const keystoreJson = await wallet.encrypt(password);
 
-      if (needKeystore) {
-        const wallet = new ethers.Wallet(hdnode.privateKey);
-        const keystore = await wallet.encrypt(password);
-        response.keystore = JSON.parse(keystore);
-      }
+    const keystore: Keystore = JSON.parse(keystoreJson);
 
-      return response;
-    } catch (error) {
-      throw new Error(
-        `Failed to create wallet: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
-    }
+    return {
+      address,
+      privateKey,
+      mnemonic: mnemonicArray,
+      keystore,
+    };
   }
 
   public async exportPrivateKeyFromMnemonic(
     mnemonic: string,
-    path: string = "m/44'/60'/0'/0/0",
-    password: string = ""
+    path: string = "m/44'/60'/0'/0/0"
   ): Promise<string> {
+    if (!mnemonic || mnemonic.split(" ").length < 12) {
+      throw new Error("Invalid mnemonic phrase");
+    }
+
     try {
-      password = password ? password : "";
-      const node = ethers.utils.HDNode.fromMnemonic(mnemonic, password);
-      const hdnode = node.derivePath(path);
-      return hdnode.privateKey;
+      // Ensure mnemonic is a single space-separated string
+      const mnemonicExport = Array.isArray(mnemonic)
+        ? mnemonic.join(" ")
+        : mnemonic;
+      const mnemonicPhrase = Mnemonic.fromPhrase(mnemonicExport);
+
+      const wallet = HDNodeWallet.fromMnemonic(mnemonicPhrase, path);
+      // Return the private key
+      return wallet.privateKey;
     } catch (error) {
-      // Ideally, you'd handle errors more gracefully or throw a custom error
       throw new Error(
         `Failed to export private key: ${
           error instanceof Error ? error.message : String(error)
@@ -91,9 +92,8 @@ export class multichainWallet {
   }
 
   public async getAddressFromMnemonic(
-    mnemonic: string,
-    path: string = "m/44'/60'/0'/0/0", // Using the default Ethereum derivation path
-    mnemonicPassword: string = ""
+    mnemonic: string | any,
+    path: string = "m/44'/60'/0'/0/0" // Using the default Ethereum derivation path
   ): Promise<string> {
     // Ensure the mnemonic is valid and has the correct number of words
     if (!mnemonic || mnemonic.split(" ").length < 12) {
@@ -101,8 +101,11 @@ export class multichainWallet {
     }
 
     try {
-      const node = ethers.utils.HDNode.fromMnemonic(mnemonic, mnemonicPassword);
-      const wallet = node.derivePath(path);
+      const mnemonicExport = Array.isArray(mnemonic)
+        ? mnemonic.join(" ")
+        : mnemonic;
+      const mnemonicPhrase = Mnemonic.fromPhrase(mnemonicExport);
+      const wallet = HDNodeWallet.fromMnemonic(mnemonicPhrase, path);
       return wallet.address;
     } catch (error) {
       throw new Error(
@@ -120,7 +123,7 @@ export class multichainWallet {
     try {
       // Convert the keystore object to a JSON string as ethers expects a JSON string for decryption
       const keystoreJsonString = JSON.stringify(keystore);
-      const wallet = await ethers.Wallet.fromEncryptedJson(
+      const wallet = await Wallet.fromEncryptedJson(
         keystoreJsonString,
         password
       );
@@ -142,7 +145,7 @@ export class multichainWallet {
   ): Promise<ImportPrivateKeyResponse> {
     try {
       // Create a wallet from the private key
-      const wallet = new ethers.Wallet(privateKey);
+      const wallet: any = new Wallet(privateKey);
 
       // Optionally encrypt the wallet to a keystore format using the provided password
       const keystore = await wallet.encrypt(password);
@@ -174,36 +177,24 @@ export class multichainWallet {
     mnemonic: string,
     password: string,
     path: string = "m/44'/60'/0'/0'/0",
-    needPrivateKey: boolean = false,
-    needPublicKey: boolean = false,
-    needKeystore: boolean = true
   ): Promise<ImportMnemonicResponse> {
     try {
-      // Create an HDNode from the mnemonic, which allows deriving keys
-      const mnemonicWallet = ethers.Wallet.fromMnemonic(mnemonic, path);
+       
+      const mnemonicInstance = Mnemonic.fromPhrase(mnemonic);
+    // Use the mnemonic and derivation path to create a wallet
+    const wallet = HDNodeWallet.fromMnemonic(mnemonicInstance, path);
 
-      // Prepare the response object
-      const response: ImportMnemonicResponse = {};
+    const { address, privateKey } = wallet;
 
-      // Optionally include the private key
-      if (needPrivateKey) {
-        response.privateKey = mnemonicWallet.privateKey;
-      }
+    // Encrypt the private key to get a keystore JSON object
+    const keystoreJson = await wallet.encrypt(password);
+    const keystore: Keystore = JSON.parse(keystoreJson);
 
-      // Optionally include the public key
-      if (needPublicKey) {
-        response.publicKey = ethers.utils.computePublicKey(
-          mnemonicWallet.privateKey
-        );
-      }
-
-      // Optionally include the keystore
-      if (needKeystore) {
-        const keystore = await mnemonicWallet.encrypt(password);
-        response.keystore = keystore;
-      }
-
-      return response;
+    return {
+      publicKey:address,
+      privateKey,
+      keystore,
+    };
     } catch (error) {
       throw new Error(
         `Failed to import mnemonic: ${
@@ -213,19 +204,23 @@ export class multichainWallet {
     }
   }
 
+  public async verifyMnemonic(mnemonic: string): Promise<boolean> {
+    return Mnemonic.isValidMnemonic(mnemonic);
+}
+
+
   //blockhain interactions functions
-  public async getBalance(
-    address: string,
+  public async getBalanceNative(
+    walletAddress: string,
     network_detail: NetworkDetail = { rpcUrl: "", chainId: "", ensAddress: "" }
   ): Promise<BalanceResponse> {
     try {
-      const provider = new ethers.providers.JsonRpcProvider(
-        network_detail.rpcUrl
-      ); // Assuming 'name' holds the RPC URL
-      const balance = await provider.getBalance(address);
+      const provider = new JsonRpcProvider(network_detail.rpcUrl);
+      // Fetch Native Coin Balance
+      const balance = await provider.getBalance(walletAddress);
 
-      // Convert the balance to a more readable format, if necessary
-      const formattedBalance = ethers.utils.formatEther(balance);
+      //Convert the balance to a more readable format
+      const formattedBalance = formatEther(balance);
 
       return { balance: formattedBalance };
     } catch (error) {
@@ -237,18 +232,68 @@ export class multichainWallet {
     }
   }
 
-  public async getGasPrice(
-    network_detail: NetworkDetail = { rpcUrl: "", chainId: "", ensAddress: "" }
-  ): Promise<GasPriceResponse> {
+  public async getBalanceERC20(
+    walletAddress: string,
+    network_detail: NetworkDetail = { rpcUrl: "", chainId: "", ensAddress: "" },
+    tokenAddress: string
+  ): Promise<BalanceResponse> {
     try {
-      const provider = new ethers.providers.JsonRpcProvider(
-        network_detail.rpcUrl
-      );
-      // Fetch the current gas price
-      const gasPrice = await provider.getGasPrice();
-      const gasPriceInGwei = ethers.utils.formatUnits(gasPrice, "gwei");
+      const tokenABI = [
+        "function balanceOf(address owner) view returns (uint256)",
+      ];
 
-      return { gasPrice: gasPriceInGwei };
+      const provider = new JsonRpcProvider(network_detail.rpcUrl);
+      const tokenContract = new Contract(tokenAddress, tokenABI, provider);
+
+      // Fetch ERC20 Token Balance
+      const erc20Bal = await tokenContract.balanceOf(walletAddress);
+
+      // Convert the balance to a more readable format
+      const formattedBalance = formatUnits(erc20Bal.toString());
+      return { balance: formattedBalance };
+    } catch (error) {
+      console.error("Error querying ERC20 balance:", error);
+      throw new Error(
+        `Failed to get balance: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+
+  public async getGasPrice(network_detail: {
+    rpcUrl: string;
+    chainId: string;
+    ensAddress?: string;
+  }): Promise<GasPriceResponse> {
+    try {
+      const provider = new JsonRpcProvider(network_detail.rpcUrl);
+      // Fetch the current fee data, which includes EIP-1559 fee values
+      const feeData = await provider.getFeeData();
+
+      // Initialize response object
+      let response: GasPriceResponse;
+
+      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+        // EIP-1559 network, return maxFeePerGas and maxPriorityFeePerGas
+        response = {
+          maxFeePerGas: formatUnits(feeData.maxFeePerGas, "gwei"),
+          maxPriorityFeePerGas: formatUnits(
+            feeData.maxPriorityFeePerGas,
+            "gwei"
+          ),
+        };
+      } else if (feeData.gasPrice) {
+        // Legacy network, return gasPrice
+        response = {
+          gasPrice: formatUnits(feeData.gasPrice, "gwei"),
+        };
+      } else {
+        // If neither is available, throw an error
+        throw new Error("Unable to retrieve gas price data.");
+      }
+
+      return response;
     } catch (error) {
       throw new Error(
         `Failed to get gas price: ${
@@ -263,23 +308,46 @@ export class multichainWallet {
     toAddress: string,
     amount: ethers.BigNumberish, // Accepts BigNumber, number, string, etc.
     data: string, // Encoded transaction data
-    network_detail: NetworkDetail = { rpcUrl: "", chainId: "", ensAddress: "" }
+    networkDetail: NetworkDetail = { rpcUrl: "", chainId: "", ensAddress: "" }
   ): Promise<GasLimitResponse> {
+    // Check for valid fromAddress and toAddress
+    if (!ethers.isAddress(fromAddress)) {
+      throw new Error("Invalid fromAddress provided.");
+    }
+    if (!ethers.isAddress(toAddress)) {
+      throw new Error("Invalid toAddress provided.");
+    }
+
+    // Check for valid amount
+    if (amount == null || amount === "") {
+      throw new Error("Amount must be provided.");
+    }
+
+    // Check for non-null data, assuming data is optional but must be a string if provided
+    if (data != null && typeof data !== "string") {
+      throw new Error("Data must be a string.");
+    }
+
+    // Check for valid networkDetail object with required rpcUrl
+    if (
+      !networkDetail ||
+      !networkDetail.rpcUrl ||
+      typeof networkDetail.rpcUrl !== "string"
+    ) {
+      throw new Error("Invalid networkDetail provided. RPC URL is required.");
+    }
+
     try {
-      const provider = new ethers.providers.JsonRpcProvider(
-        network_detail.rpcUrl
-      );
+      const provider = new JsonRpcProvider(networkDetail.rpcUrl);
       const transaction = {
         from: fromAddress,
         to: toAddress,
-        value: amount,
+        value: parseEther(amount.toString()),
         data: data,
       };
 
       // Estimate the gas limit
-      const gasLimit: ethers.BigNumber = await provider.estimateGas(
-        transaction
-      );
+      const gasLimit = await provider.estimateGas(transaction);
 
       // Convert the BigNumber gas limit to a string
       return { gasLimit: gasLimit.toString() };
@@ -299,28 +367,75 @@ export class multichainWallet {
     data: string,
     networkDetail: { rpcUrl: string; chainId: string; ensAddress?: string }
   ): Promise<TransactionCostSimulationResponse> {
+    // Check for valid fromAddress and toAddress
+    if (!ethers.isAddress(fromAddress)) {
+      throw new Error("Invalid fromAddress provided.");
+    }
+    if (!ethers.isAddress(toAddress)) {
+      throw new Error("Invalid toAddress provided.");
+    }
+
+    // Check for valid amount
+    if (amount == null || amount === "") {
+      throw new Error("Amount must be provided.");
+    }
+
+    // Check for non-null data, assuming data is optional but must be a string if provided
+    if (data != null && typeof data !== "string") {
+      throw new Error("Data must be a string.");
+    }
+
+    // Check for valid networkDetail object with required rpcUrl
+    if (
+      !networkDetail ||
+      !networkDetail.rpcUrl ||
+      typeof networkDetail.rpcUrl !== "string"
+    ) {
+      throw new Error("Invalid networkDetail provided. RPC URL is required.");
+    }
+
     try {
-      const { gasLimit } = await this.getGasLimit(
-        fromAddress,
-        toAddress,
-        amount,
-        data,
-        networkDetail
-      );
-      const { gasPrice } = await this.getGasPrice(networkDetail);
+      const provider = new JsonRpcProvider(networkDetail.rpcUrl);
+      const feeData: any = await provider.getFeeData();
 
-      // Calculate total cost
-      // Convert gasLimit and gasPrice from string to BigNumber for accurate multiplication
-      const totalCost = ethers.utils
-        .parseUnits(gasPrice, "gwei")
-        .mul(ethers.BigNumber.from(gasLimit));
+      // Convert amount to BigInt for calculation
+      // Ensure amount is a string that represents the value in wei for direct conversion to BigInt
+      const amountInWei = BigInt(parseUnits(amount.toString(), "ether"));
 
-      // Convert total cost back to a string in Ether for easy reading
-      const totalCostInEther = ethers.utils.formatEther(totalCost);
+      // Estimate gas limit for the transaction
+      const gasLimit = await provider.estimateGas({
+        from: fromAddress,
+        to: toAddress,
+        value: amountInWei,
+        data: data,
+      });
+
+      let totalCost;
+
+      // Use BigInt for gasPrice and maxFeePerGas calculations
+      const gasPrice = feeData.gasPrice
+        ? BigInt(feeData.gasPrice.toString())
+        : null;
+      const maxFeePerGas = feeData.maxFeePerGas
+        ? BigInt(feeData.maxFeePerGas.toString())
+        : null;
+
+      if (maxFeePerGas) {
+        // Calculate total cost for EIP-1559 transactions
+        totalCost = maxFeePerGas * gasLimit;
+      } else if (gasPrice) {
+        // Calculate total cost for legacy transactions
+        totalCost = gasPrice * gasLimit;
+      } else {
+        throw new Error("Unable to retrieve gas price data.");
+      }
+
+      // Convert total cost back to a string in Ether for readability
+      const totalCostInEther = formatUnits(totalCost.toString(), "ether");
 
       return {
-        gasLimit,
-        gasPrice,
+        gasLimit: gasLimit.toString(),
+        gasPrice: gasPrice ? gasPrice.toString() : "EIP-1559 transaction",
         totalCost: totalCostInEther,
       };
     } catch (error) {
@@ -335,77 +450,54 @@ export class multichainWallet {
   public async sendTransaction(
     signer: string,
     toAddress: string,
-    amountEther: string,
+    amountEther: string, // Amount in Ether as a string
     networkRpcUrl: { rpcUrl: string; chainId: string; ensAddress?: string }
-  ): Promise<TransactionResponse> {
+): Promise<{ transactionHash: string }> {
     try {
-      if (!signer || signer.length === 0) {
-        throw new Error("Sender private key is required");
-      }
-      if (
-        !toAddress ||
-        toAddress.length === 0 ||
-        !ethers.utils.isAddress(toAddress)
-      ) {
-        throw new Error("Valid toAddress is required");
-      }
-      if (
-        !amountEther ||
-        isNaN(parseFloat(amountEther)) ||
-        parseFloat(amountEther) <= 0
-      ) {
-        throw new Error("Valid amountEther is required");
-      }
-      if (!networkRpcUrl) {
-        throw new Error("networkRpcUrl is required");
-      }
-
-      // Create a provider connected to the  network
-      const provider = new ethers.providers.JsonRpcProvider(
-        networkRpcUrl.rpcUrl
-      );
-
-      // Create a wallet instance from the private key and connect it to the network
-      const wallet = new ethers.Wallet(signer, provider);
-
-      // Create the transaction object
-      const tx = {
-        to: toAddress,
-        // Convert the amount to Wei
-        value: ethers.utils.parseEther(amountEther),
-        gasPrice: await provider.getGasPrice(),
-      };
-
-      // Simulate the transaction
-      try {
-        await provider.estimateGas({ ...tx, from: wallet.address });
-      } catch (simulationError) {
-        // Check if the error is an instance of Error and throw a new error with its message
-        if (simulationError instanceof Error) {
-          throw new Error(
-            `Transaction simulation failed: ${simulationError.message}`
-          );
-        } else {
-          // If the caught object is not an Error instance, handle it differently
-          throw new Error(
-            "Transaction simulation failed: An unknown error occurred"
-          );
+        if (!signer) {
+            throw new Error("Sender private key is required");
         }
-      }
+        if (!ethers.isAddress(toAddress)) {
+            throw new Error("Valid toAddress is required");
+        }
+        const amountInWei =  parseUnits(amountEther, "ether");
 
-      // If simulation succeeds, send the actual transaction
-      const transactionResponse = await wallet.sendTransaction(tx);
-      await transactionResponse.wait();
+        const provider = new JsonRpcProvider(networkRpcUrl.rpcUrl);
+        const wallet = new ethers.Wallet(signer).connect(provider);
 
-      return { transactionHash: transactionResponse.hash };
+        const feeData = await provider.getFeeData();
+
+        let tx: ethers.TransactionRequest;
+
+        if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+            tx = {
+                to: toAddress,
+                value: amountInWei,
+                maxFeePerGas: feeData.maxFeePerGas,
+                maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+            };
+        } else {
+            tx = {
+                to: toAddress,
+                value: amountInWei,
+                // Ensure gasPrice is properly handled as a BigInt or BigNumberish
+                gasPrice: feeData.gasPrice ? BigInt(feeData.gasPrice) : undefined,
+            };
+        }
+
+        // Simulate the transaction (optional)
+        await provider.estimateGas({ ...tx, from: wallet.address });
+
+        // Send the actual transaction
+        const transactionResponse = await wallet.sendTransaction(tx);
+        await transactionResponse.wait(); // Wait for the transaction to be mined
+
+        return { transactionHash: transactionResponse.hash };
     } catch (error) {
-      throw new Error(
-        `Failed to send transaction: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+        console.error(error);
+        throw new Error(`Failed to send transaction: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }
+}
 }
 
 export const multichain = new multichainWallet();
