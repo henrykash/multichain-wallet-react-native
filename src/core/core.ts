@@ -1,11 +1,9 @@
 // Import the crypto getRandomValues shim (**BEFORE** the shims)
-// import "react-native-get-random-values";
-// // Import the the ethers shims (**BEFORE** ethers)
+ import "react-native-get-random-values";
+ // Import the the ethers shims (**BEFORE** ethers)
 
-// import '@ethersproject/shims';
+import '@ethersproject/shims';
 import {
-  SigningKey,
-  BytesLike,
   HDNodeWallet,
   JsonRpcProvider,
   Wallet,
@@ -14,7 +12,6 @@ import {
   formatUnits,
   parseEther,
   parseUnits,
-  randomBytes,
   Mnemonic,
   Contract,
 } from "ethers";
