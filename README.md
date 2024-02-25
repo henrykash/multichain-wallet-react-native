@@ -27,7 +27,7 @@ password authentication locally, and does not activate the wallet except for wri
 Import 
  ```bash
     import { multichainWallet } from 'multichain-wallet-react-native'
-    const multichain = new multichaiWallet()
+    const multichain = new multichainWallet()
  ```
 
 ## Create Wallet
