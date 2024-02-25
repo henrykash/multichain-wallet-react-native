@@ -322,7 +322,6 @@ simulateTransactionCost()
 ## sendTransaction
 ```bash
 const  sendTransaction = async()=>{
-   *************************** sendTransaction*******************************
 const signer ="6c7a59f2f019ed9ae8eef9e5bae9e83a837a2f67197011257bd4c0ef6611a300";
 
   const networkDetail = {
